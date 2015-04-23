@@ -1,0 +1,42 @@
+upstream launcher {
+{{ range getvs "/services/launchers/*" }}
+    server {{.}};
+{{ end }}
+}
+
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server ipv6only=on;
+
+    access_log /var/log/nginx/access.log;
+
+
+    location / {
+        error_page 404 = @try_init;
+    }
+
+    location @try_init {
+        # Rewrite the URL: /id/name/dosomething => /create/id
+        rewrite ^\/([^.\/]+)\/*(.*)$ /create/$1 break;
+        proxy_pass http://launcher;
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+{{ if ls "/services/apps" }}
+    {{ range gets "/services/apps/*" }}
+        location /{{ base .Key }} {
+            rewrite           ^/{{ base .Key }}/(.*) /$1 break;
+            proxy_pass http://{{ .Value }};
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    {{ end }}
+{{ end }}
+
+}
+

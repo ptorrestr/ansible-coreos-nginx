@@ -1,0 +1,21 @@
+FROM debian:jessie
+MAINTAINER "Pablo Torres" <pablo.torres.t@gmail.com>
+
+#Install nginx
+RUN apt-get update
+RUN apt-get install -y nginx curl
+
+#Install confd
+RUN curl -L https://github.com/kelseyhightower/confd/releases/download/v0.7.1/confd-0.7.1-linux-amd64 -o confd
+RUN chmod +x confd
+RUN cp confd /usr/local/bin/confd
+
+# Remove default NGINX config file
+RUN rm /etc/nginx/sites-enabled/default
+
+#Add files
+ADD nginx.toml /etc/confd/conf.d/nginx.toml
+ADD nginx.conf.tmpl /etc/confd/templates/nginx.conf.tmpl
+ADD confd-watch /usr/local/bin/confd-watch
+
+ENTRYPOINT ["/usr/local/bin/confd-watch"]
