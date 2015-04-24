@@ -1,0 +1,18 @@
+FROM debian:jessie
+MAINTAINER "Pablo Torres" <pablo.torres.t@gmail.com>
+
+#Install gunicorn
+RUN apt-get update
+RUN apt-get install -y gunicorn
+
+#Add files
+RUN mkdir -p /var/www/myapp
+RUN mkdir -p /var/log/gunicorn
+COPY myapp.conf /etc/gunicorn.d/myapp.conf
+COPY myapp.py /var/www/myapp/myapp.py
+COPY boot.sh /boot.sh
+
+EXPOSE 5000
+ENTRYPOINT ["/bin/bash"]
+CMD ["/boot.sh"]
+

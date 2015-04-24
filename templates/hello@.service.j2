@@ -1,0 +1,24 @@
+[Unit]
+Description=Gunicorn web application
+Requires=etcd.service
+Requires=docker.service
+After=etcd.service
+After=docker.service
+
+[Service]
+KillMode=none
+TimeoutStartSec=360
+TimeoutStopSec=360
+EnvironmentFile=/etc/environment
+ExecStartPre=/usr/bin/docker pull {{ hello_image_name }}
+ExecStartPre=-/usr/bin/docker rm -f %p%i
+ExecStartPre=/usr/bin/docker create -it --name %p%i -p %i:5000 -e HOST_IP=${COREOS_PUBLIC_IPV4} {{ hello_image_name }}
+ExecStart=/usr/bin/docker start -a %p%i
+ExecStartPost=/usr/bin/etcdctl set /app/server/%i ${COREOS_PUBLIC_IPV4}:%i
+ExecStop=/usr/bin/docker stop -t 60 %p%i
+ExecStopPost=/usr/bin/etcdctl rm /app/server/%i
+ExecStopPost=-/usr/bin/docker rm -f %p%i
+Restart=on-failure
+
+[X-Fleet]
+Conflicts=*@%i.service

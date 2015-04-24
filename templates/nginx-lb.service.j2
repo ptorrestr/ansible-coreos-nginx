@@ -1,0 +1,21 @@
+[Unit]
+Description=Nginx web server
+Requires=etcd.service
+Requires=docker.service
+After=etcd.service
+After=docker.service
+
+[Service]
+KillMode=none
+TimeoutStartSec=360
+TimeoutStopSec=360
+EnvironmentFile=/etc/environment
+ExecStartPre=/usr/bin/docker pull {{ nginx_image_name }}
+ExecStartPre=-/usr/bin/docker rm -f %p
+ExecStart=/usr/bin/docker run --name %p -p 80:80 -e HOST_IP=${COREOS_PUBLIC_IPV4} {{ nginx_image_name }}
+ExecStop=/usr/bin/docker stop -t 60 %p
+ExecStopPost=-/usr/bin/docker rm -f %p
+Restart=on-failure
+ 
+[X-Fleet]
+Conflicts=%p.service
