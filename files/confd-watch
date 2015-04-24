@@ -22,8 +22,8 @@ cat /etc/nginx/sites-enabled/nginx.conf | xargs -L1 echo
 # time)
 primes=(11 13 17 19 23 29 31 37 41 43)
 
-confd -interval ${primes[$2]} -node $ETCD -config-file /etc/confd/conf.d/nginx.toml &
-echo "[nginx] confd is now monitoring etcd for changes in intervals of ${primes[$2]} seconds..."
+confd -interval ${primes[1]} -node $ETCD -config-file /etc/confd/conf.d/nginx.toml &
+echo "[nginx] confd is now monitoring etcd for changes in intervals of ${primes[1]} seconds..."
 
 # Start the Nginx service using the generated config
 echo "[nginx] starting nginx service..."

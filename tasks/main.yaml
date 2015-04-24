@@ -1,51 +1,75 @@
 ---
 # Create docker directory for nginx
 - name: Create docker directory for nginx
-  file: path="{{ playbook_dir }}/docker/nginx" state=directory
+  file: path="{{ playbook_dir }}/docker/{{ item }}" state=directory
+  with_items:
+    - "nginx"
+    - "hello"
   tags:
     - configuration
 - name: Create Nginx Dockerfile
-  template: src="nginx-dockerfile.j2" dest="{{ playbook_dir }}/docker/nginx/Dockerfile"
+  template: src="{{ item }}-dockerfile.j2" dest="{{ playbook_dir }}/docker/{{ item }}/Dockerfile"
+  with_items:
+    - "nginx"
+    - "hello"
   tags:
     - configuration
 - name: Copy extra files for Nginx image
   copy: src="{{ item }}" dest="{{ playbook_dir }}/docker/nginx/{{ item }}"
   with_items:
     - "confd-watch"
+    - "nginx.conf"
     - "nginx.conf.tmpl"
     - "nginx.toml"
   tags:
     - configuration
+- name: Copy extra files for Hello image
+  copy: src="{{ item }}" dest="{{ playbook_dir }}/docker/hello/{{ item }}"
+  with_items:
+    - "boot.sh"
+    - "myapp.py"
+    - "myapp.conf"
+  tags:
+    - configuration
 - name: Build Nginx image
-  docker_image: docker_url="tcp://{{ registry_hostname }}":2375 path="{{ playbook_dir }}/docker/nginx" name="{{ nginx_image_name }}" state="build"
+  docker_image: docker_url="tcp://{{ registry_hostname }}":2375 path="{{ playbook_dir }}/docker/{{ item.name }}" name="{{ item.image }}" state="build"
+  with_items:
+    - { name: "nginx", image: "{{ nginx_image_name }}" }
+    - { name: "hello", image: "{{ hello_image_name }}" }
   tags:
     - docker
     - docker_build
 - name: Push Nginx image to repo
-  shell: "docker -H tcp://{{ registry_hostname }}:2375 push {{ nginx_image_name }}"
+  shell: "docker -H tcp://{{ registry_hostname }}:2375 push {{ item }}"
+  with_items:
+    - "{{ nginx_image_name }}"
+    - "{{ hello_image_name }}"
   tags:
     - docker
     - docker_push
 
 # Create units for nginx
 - name: Create Nginx units
-  template: src="nginx@x.service.j2" dest="{{ playbook_dir }}/units/nginx@{{ item }}.service"
-  with_items: 
-    - "80"
+  template: src="{{ item }}.service.j2" dest="{{ playbook_dir }}/units/{{ item }}.service"
+  with_items:
+    - "nginx-lb"
+    - "hello@"
   tags:
     - fleet
     - fleet_start
 - name: Submit Nginx units
-  shell: "fleetctl --tunnel {{ fleet_endpoint }} submit {{ playbook_dir }}units/nginx@{{ item }}.service"
+  shell: "fleetctl --tunnel {{ fleet_endpoint }} submit {{ playbook_dir }}/units/{{ item }}.service"
   with_items:
-    - "80"
+    - "nginx-lb"
+    - "hello@"
   tags:
     - configuration
 - name: Start Nginx units
-  shell: "fleetctl --tunnel {{ fleet_endpoint }} start {{ playbook_dir }}untis/nginx@{{ item }}.service"
+  shell: "fleetctl --tunnel {{ fleet_endpoint }} start {{ playbook_dir }}/untis/{{ item }}.service"
   with_items:
-    - "80"
+    - "nginx-lb"
+    - "hello@5000"
+    - "hello@5001"
   tags:
     - fleet
     - fleet_start
-  
