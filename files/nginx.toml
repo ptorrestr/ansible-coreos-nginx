@@ -9,7 +9,7 @@ dest = "/etc/nginx/sites-enabled/nginx.conf"
 
 # The etcd keys or directory to watch.  This is where the information to fill in
 # the template will come from.
-keys = [ "/app/server" ]
+keys = [ "/services/web" ]
 
 # File ownership and mode information
 owner = "root"

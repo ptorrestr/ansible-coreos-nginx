@@ -20,4 +20,5 @@ ADD nginx.conf.tmpl /etc/confd/templates/nginx.conf.tmpl
 ADD confd-watch /usr/local/bin/confd-watch
 RUN chmod +x /usr/local/bin/confd-watch
 
+EXPOSE 80
 ENTRYPOINT ["/usr/local/bin/confd-watch"]

@@ -1,12 +1,16 @@
 #!/bin/bash
 
+# Capture signals
+trap "service nginx stop; exit" SIGTERM SIGINT SIGQUIT
+
+# Fail hard and fast
 set -eo pipefail
 
 export ETCD_PORT=${ETCD_PORT:-4001}
 export HOST_IP=${HOST_IP:-172.17.42.1}
 export ETCD=$HOST_IP:$ETCD_PORT
 
-echo "[nginx] Booting container. ETCD: $ETCD."
+echo "[nginx] Booting container. ETCD: $ETCD, Host: $HOST_IP, Port: $PORT"
 
 # Try to make initial configuration every 5 seconds until successful
 until confd -onetime -node $ETCD -config-file /etc/confd/conf.d/nginx.toml; do
@@ -29,5 +33,6 @@ echo "[nginx] confd is now monitoring etcd for changes in intervals of ${primes[
 echo "[nginx] starting nginx service..."
 service nginx start
 
-# Follow the logs to allow the script to continue running
-tail -f /var/log/nginx/*.log
+# Wait for signal
+echo "[nginx] nginx started"
+read
