@@ -10,13 +10,27 @@ KillMode=none
 TimeoutStartSec=360
 TimeoutStopSec=360
 EnvironmentFile=/etc/environment
+Environment="WEBSERV_NS_LOCAL=/skydns/local/web/%p"
+Environment="WEBSERV_NS_LOCAL_i=/skydns/local/web/%p/%i"
+Environment="WEBSERV_NS=/skydns/local/nginx/%p"
+Environment="WEBSERV_URL=%i.%p.web.local:%i"
+Environment="WEBSERV_NAME=/services/web/%p"
+Environment="WEBSERV_NAME_i=/services/web/%p/%i"
 ExecStartPre=/usr/bin/docker pull {{ hello_image_name }}
 ExecStartPre=-/usr/bin/docker rm -f %p%i
-ExecStartPre=/usr/bin/docker create -it --name %p%i -p %i:5000 -e HOST_IP=${COREOS_PUBLIC_IPV4} -e PORT=%i {{ hello_image_name }}
+ExecStartPre=/bin/bash -c '\
+	DNS=`/usr/bin/etcdctl get /skydns/ip` ; \
+	/usr/bin/docker create -it --name %p%i -p %i:5000 --dns=$DNS -e HOST_IP=${COREOS_PUBLIC_IPV4} -e PORT=%i {{ hello_image_name }} ; \
+	'
 ExecStart=/usr/bin/docker start -a %p%i
-ExecStartPost=/usr/bin/etcdctl set /services/web/%p/%i ${COREOS_PUBLIC_IPV4}:%i
+ExecStartPost=/usr/bin/etcdctl set $WEBSERV_NS_LOCAL_i '{"host":"${COREOS_PUBLIC_IPV4}","port":%i}'
+ExecStartPost=/usr/bin/etcdctl set $WEBSERV_NS '{"host":"www.nginx.local","port":80}'
+ExecStartPost=/usr/bin/etcdctl set $WEBSERV_NAME_i $WEBSERV_URL
 ExecStop=/usr/bin/docker stop -t 60 %p%i
-ExecStopPost=/usr/bin/etcdctl rm /services/web/%p/%i
+ExecStopPost=/usr/bin/etcdctl rm $WEBSERV_NS_LOCAL_i
+ExecStopPost=/usr/bin/etcdctl rm $WEBSERV_NAME_i
+ExecStopPost=-/usr/bin/etcdctl rm --dir $WEBSERV_NS_LOCAL
+ExecStopPost=-/usr/bin/etcdctl rm --dir $WEBSERV_NAME && /usr/bin/etcdctl rm $WEBSERV_NS"
 ExecStopPost=-/usr/bin/docker rm -f %p%i
 Restart=on-failure
 

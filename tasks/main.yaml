@@ -32,7 +32,7 @@
   tags:
     - configuration
 - name: Build Nginx image
-  docker_image: docker_url="tcp://{{ registry_hostname }}":2375 path="{{ playbook_dir }}/docker/{{ item.name }}" name="{{ item.image }}" state="build"
+  docker_image: docker_url="tcp://{{ registry_host }}":2375 path="{{ playbook_dir }}/docker/{{ item.name }}" name="{{ item.image }}" state="build"
   with_items:
     - { name: "nginx", image: "{{ nginx_image_name }}" }
     - { name: "hello", image: "{{ hello_image_name }}" }
@@ -40,7 +40,7 @@
     - docker
     - docker_build
 - name: Push Nginx image to repo
-  shell: "docker -H tcp://{{ registry_hostname }}:2375 push {{ item }}"
+  shell: "docker -H tcp://{{ registry_host }}:2375 push {{ item }}"
   with_items:
     - "{{ nginx_image_name }}"
     - "{{ hello_image_name }}"
@@ -58,14 +58,14 @@
     - fleet
     - fleet_start
 - name: Submit Nginx units
-  shell: "fleetctl --tunnel {{ fleet_endpoint }} submit {{ playbook_dir }}/units/{{ item }}.service"
+  shell: "fleetctl submit {{ playbook_dir }}/units/{{ item }}.service"
   with_items:
     - "nginx-lb"
     - "hello@"
   tags:
     - configuration
 - name: Start Nginx units
-  shell: "fleetctl --tunnel {{ fleet_endpoint }} start {{ playbook_dir }}/untis/{{ item }}.service"
+  shell: "fleetctl start {{ playbook_dir }}/untis/{{ item }}.service"
   with_items:
     - "nginx-lb"
     - "hello@5000"

@@ -9,6 +9,8 @@ server {
   listen 80 default_server;
   listen [::]:80 default_server ipv6only=on;
 
+  server_name {{ base $dir }}.nginx.local
+
   access_log /var/log/nginx/access.log upstreamlog;
   location / {
     proxy_pass http://{{ base $dir }};
@@ -19,3 +21,4 @@ server {
   }
 }
 {{ end }}
+

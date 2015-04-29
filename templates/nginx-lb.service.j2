@@ -10,11 +10,17 @@ KillMode=none
 TimeoutStartSec=360
 TimeoutStopSec=360
 EnvironmentFile=/etc/environment
+Environment="NGINX_NS=/skydns/local/nginx/www"
 ExecStartPre=/usr/bin/docker pull {{ nginx_image_name }}
 ExecStartPre=-/usr/bin/docker rm -f %p
-ExecStartPre=/usr/bin/docker create -it --name %p -p 80:80 -e HOST_IP=${COREOS_PUBLIC_IPV4} -e PORT=80 {{ nginx_image_name }}
+ExecStartPre=/bin/bash -c '\
+	DNS=`/usr/bin/etcdctl get /skydns/ip` ; \
+	/usr/bin/docker create -it --name %p -p 80:80 --dns=$DNS -e HOST_IP=${COREOS_PUBLIC_IPV4} -e PORT=80 {{ nginx_image_name }} ; \
+	'
 ExecStart=/usr/bin/docker start -a %p
+ExecStartPost=/usr/bin/etcdctl set $NGINX_NS '{"host":"${COREOS_PUBLIC_IPV4}","port":80}'
 ExecStop=/usr/bin/docker stop -t 60 %p
+ExecStopPost=/usr/bin/etcdctl rm $NGINX_NS
 ExecStopPost=-/usr/bin/docker rm -f %p
 Restart=on-failure
  
